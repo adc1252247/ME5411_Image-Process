@@ -1,12 +1,10 @@
 
 %% Readme: Load Network and set Dataset
 
-
-load("Save_models\Best_Simple_Net.mat");
-%load(("Save_models\NetName.mat") Replace NetName with net model 
+load("Save_models\Best_Advance_Net.mat"); %Replace NetName with net model 
 %% 
 
-net= Best_Simple_Net;
+net = Best_Advance_Net;
 %net=simplenet; %Change if not using the default
 
 % Set data folder and image labels

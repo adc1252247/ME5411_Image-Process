@@ -26,24 +26,20 @@ layers = [
     imageInputLayer([128 128 1])
 
     convolution2dLayer(3,16,Padding="same") 
-    convolution2dLayer(3,16,Padding="same")
     batchNormalizationLayer
     reluLayer
     maxPooling2dLayer(2,Stride=2)
 
     convolution2dLayer(3,32,Padding="same")
-    convolution2dLayer(3,32,Padding="same")
     batchNormalizationLayer
     reluLayer
     maxPooling2dLayer(2,Stride=2)
 
-    convolution2dLayer(3,64,Padding="same")
     convolution2dLayer(3,64,Padding="same")
     batchNormalizationLayer
     reluLayer
     maxPooling2dLayer(2,Stride=2)         
-    
-    dropoutLayer(0.5)  %Optional dropout layer for task8
+  
     fullyConnectedLayer(7)
     softmaxLayer
 ];
