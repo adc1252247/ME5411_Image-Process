@@ -165,7 +165,7 @@ rGrow = 2; rShrink = 1;
 BW_boldC{rr,cc} = imerode(imdilate(BW_src, strel('disk', rGrow)), strel('disk', rShrink));
 BW_C = BW_boldC{rr,cc};
 
-rSk = 1;
+rSk = 5;
 Sk  = bwmorph(BW_src, 'skel', Inf);
 BW_boldD{rr,cc} = imdilate(Sk, strel('disk', rSk));
 
@@ -178,11 +178,10 @@ perimB_thick = imdilate(perimB, strel('disk', 1));
 overlay_on_B_thin  = imoverlay(BW_B, perimB, [1 0 0]);          
 overlay_on_B_thick = imoverlay(BW_B, perimB_thick, [1 0 0]);
 
-perimC = bwperim(BW_boldC{rr,cc});                              
-overlay_from_C     = imoverlay(BW_clean_simple, perimC, [1 0 0]);       
-overlay_from_C_inv = imcomplement(overlay_from_C);               
+perimC = bwperim(BW_boldC{rr,cc});  
 perimC_thick = imdilate(perimC, strel('disk', 1));
-overlay_from_C_inv_outlined_thin  = imoverlay(rgb2gray(overlay_from_C_inv), perimC,       [1 0 0]);
+overlay_from_C     = imoverlay(BW_clean_simple, perimC_thick, [1 0 0]);       
+overlay_from_C_inv = imcomplement(overlay_from_C);               
 overlay_from_C_inv_outlined_thick = imoverlay(rgb2gray(overlay_from_C_inv), perimC_thick, [1 0 0]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -325,74 +324,180 @@ for rr = 1:R
     end
 end
 
-% Step 5 Tab
+%% Step 5 Tab - Improved, robust visualization (replace previous Step 5 block)
+% Updated: histeq panel now uses 4 rows x 4 cols (no reserved heading row).
+% Images are placed in tiles 1..12 (left-to-right, top-to-bottom).
+% Tiles 13..16 are left empty for spacing (can be removed/filled later).
 tab5 = uitab(tg, 'Title', 'Step 5 - Cleaning & Bolding');
-num_rows = 4;
-num_cols = 8;  % 1 extra column for row legend
-t5 = tiledlayout(tab5, num_rows, num_cols, 'TileSpacing', 'compact', 'Padding', 'compact');
 
-% Row legends (leftmost column)
-row_legends = {
-    'Orig & Before/After', ...
-    'Cleaning & Bolding Part 1', ...
-    'Bolding & Outlines Part 2', ...
-    'Overlays & Outlines'
-};
+% ---------------------------
+% Top panel: imadjust (2x3 layout)
+% ---------------------------
+panel_imadj = uipanel('Parent', tab5, 'Title', 'imadjust (5x5 crop)', ...
+                      'FontWeight','bold', 'Position', [0.01 0.53 0.98 0.46]);
 
-% Add row legends
-for r = 1:num_rows
-    add_row_legend(t5, r, row_legends{r}, num_cols);
+t_im = tiledlayout(panel_imadj, 2, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
+
+% Row 1 headings removed (tiles reserved for spacing)
+for i = 1:3
+    ax = nexttile(t_im, i);
+    axis(ax, 'off');   % heading hidden
 end
 
-% Row 1 (start from tile 2 to 8)
-imshow(cropped_images{1,2}, 'Parent', nexttile(t5)); title('Orig imadjust');
-imshow(BW_thresh_before{1,2}, 'Parent', nexttile(t5)); title('Before');
-imshow(BW_thresh{1,2}, 'Parent', nexttile(t5)); title('After');
+% Row 2 contents (use safe checks for variables)
+% Cropped image (imadjust column c=2, rr=1)
+ax = nexttile(t_im, 4);
+if exist('cropped_images','var') && iscell(cropped_images) && size(cropped_images,1)>=1 && size(cropped_images,2)>=2 && ~isempty(cropped_images{1,2})
+    imshow(cropped_images{1,2}, 'Parent', ax);
+else
+    axis(ax,'off');
+    text(0.5,0.5,'(missing cropped\_images{1,2})','HorizontalAlignment','center','Parent',ax);
+end
+title(ax,'Cropped (imadjust)');
 
-imshow(cropped_images{1,3}, 'Parent', nexttile(t5)); title('Orig histeq');
-imshow(BW_thresh_before{1,3}, 'Parent', nexttile(t5)); title('Before');
-imshow(BW_thresh{1,3}, 'Parent', nexttile(t5)); title('After');
+% Before mask for imadjust
+ax = nexttile(t_im, 5);
+if exist('BW_thresh_before','var') && iscell(BW_thresh_before) && size(BW_thresh_before,1)>=1 && size(BW_thresh_before,2)>=2 && ~isempty(BW_thresh_before{1,2})
+    imshow(BW_thresh_before{1,2}, 'Parent', ax);
+else
+    axis(ax,'off');
+    text(0.5,0.5,'(missing BW\_thresh\_before{1,2})','HorizontalAlignment','center','Parent',ax);
+end
+title(ax,'Threshold (Before)');
 
-imshow(BW, 'Parent', nexttile(t5)); title('Input BW (r1,c3)');
+% After mask for imadjust
+ax = nexttile(t_im, 6);
+if exist('BW_thresh','var') && iscell(BW_thresh) && size(BW_thresh,1)>=1 && size(BW_thresh,2)>=2 && ~isempty(BW_thresh{1,2})
+    imshow(BW_thresh{1,2}, 'Parent', ax);
+else
+    axis(ax,'off');
+    text(0.5,0.5,'(missing BW\_thresh{1,2})','HorizontalAlignment','center','Parent',ax);
+end
+title(ax,'Threshold (After)');
 
-% Row 2
-imshow(E, 'Parent', nexttile(t5)); title(sprintf('E (break disk=%d)', neckSize));
-imshow(black_small, 'Parent', nexttile(t5)); title(sprintf('Small WHITE dots (<= %d px)', minAreaBlack));
-imshow(BW_clean_simple, 'Parent', nexttile(t5)); title('BW after removal');
-imshow(BW_clean_simple, 'Parent', nexttile(t5)); title('Cleaned (r1,c3)');
-imshow(BW_boldA{1,3}, 'Parent', nexttile(t5)); title(sprintf('Bold A: d%d', rA));
-imshow(BW_boldB{1,3}, 'Parent', nexttile(t5)); title(sprintf('Bold B: r=%d,it=%d,clean=%d', rB, itB, cleanAreaB));
-imshow(BW_boldC{1,3}, 'Parent', nexttile(t5)); title('Bold C');
 
-% Row 3
-imshow(BW_boldD{1,3}, 'Parent', nexttile(t5)); title('Bold D');
-imshow(imoverlay(BW_clean_simple, bwperim(BW_boldC{1,3}), [1 0 0]), 'Parent', nexttile(t5)); title('C vs Clean (perim)');
-imshow(imoverlay(BW_clean_simple, bwperim(BW_boldB{1,3}), [1 0 0]), 'Parent', nexttile(t5)); title('B vs Clean (perim)');
-imshow(BW_boldB{1,3}, 'Parent', nexttile(t5)); title('Bold B');
-imshow(perimB, 'Parent', nexttile(t5)); title('Bold B perimeter');
-imshow(overlay_on_B_thin, 'Parent', nexttile(t5)); title('Bold B + outline (thin)');
-imshow(overlay_on_B_thick, 'Parent', nexttile(t5)); title('Bold B + outline (thick)');
+% ---------------------------
+% Bottom panel: histeq (4x4 layout, no reserved heading row)
+% ---------------------------
+panel_hist = uipanel('Parent', tab5, 'Title', 'histeq (5x5 crop) — detailed steps', ...
+                      'FontWeight','bold', 'Position', [0.01 0.01 0.98 0.50]);
 
-% Row 4
-imshow(overlay_from_C, 'Parent', nexttile(t5)); title('Overlay from C (base + perimC)');
-imshow(overlay_from_C_inv, 'Parent', nexttile(t5)); title('Overlay from C (inverted)');
-imshow(overlay_from_C_inv_outlined_thin, 'Parent', nexttile(t5)); title('Inverted + outline (thin, perimC)');
-imshow(overlay_from_C_inv_outlined_thick, 'Parent', nexttile(t5)); title('Inverted + outline (thick, perimC)');
+% 4 rows x 4 cols = 16 tiles total. We'll use tiles 1..12 for images.
+t_hist = tiledlayout(panel_hist, 4, 4, 'TileSpacing', 'compact', 'Padding', 'compact');
 
-% Fill remaining tiles with empty axes to keep layout consistent
-total_tiles = num_rows * num_cols;
-used_tiles = 4*7 + 4;  % 4 rows * 7 images + 4 legends = 32, but we have only 32 tiles total
-% Actually, we have 4 rows * 8 cols = 32 tiles total
-% We used 4 legends + 28 images = 32 tiles total, so no empty tiles needed
-% But if you want to be safe, you can fill any remaining tiles:
+% --- Row 1 (tiles 1..4): Cropped / Thresh (Before) / Thresh (After) / Erosion
+ax = nexttile(t_hist, 1);
+if exist('cropped_images','var') && iscell(cropped_images) && size(cropped_images,2) >= 3 && ~isempty(cropped_images{1,3})
+    imshow(cropped_images{1,3}, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing cropped\_images{1,3})','Parent',ax);
+end
+title(ax,'Cropped (histeq)');
 
-remaining_tiles = total_tiles - used_tiles;
-for i = 1:remaining_tiles
-    ax = nexttile(t5);
+ax = nexttile(t_hist, 2);
+if exist('BW_thresh_before','var') && iscell(BW_thresh_before) && size(BW_thresh_before,2) >= 3 && ~isempty(BW_thresh_before{1,3})
+    imshow(BW_thresh_before{1,3}, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing BW\_thresh\_before{1,3})','Parent',ax);
+end
+title(ax,'Thresh (Before)');
+
+ax = nexttile(t_hist, 3);
+if exist('BW_thresh','var') && iscell(BW_thresh) && size(BW_thresh,2) >= 3 && ~isempty(BW_thresh{1,3})
+    imshow(BW_thresh{1,3}, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing BW\_thresh{1,3})','Parent',ax);
+end
+title(ax,'Thresh (After)');
+
+ax = nexttile(t_hist, 4);
+if exist('E','var') && ~isempty(E)
+    imshow(E, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing E)','Parent',ax);
+end
+if exist('neckSize','var')
+    title(ax, sprintf('Erosion (disk=%d)', neckSize));
+else
+    title(ax, 'Erosion (disk=N)');
+end
+
+
+% --- Row 2 (tiles 5..8): Final Cleaned Mask / Bold A / Bold B / Bold C
+ax = nexttile(t_hist, 5);
+if exist('BW_clean_simple','var') && ~isempty(BW_clean_simple)
+    imshow(BW_clean_simple, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing BW\_clean\_simple)','Parent',ax);
+end
+title(ax,'Final Cleaned Mask');
+
+ax = nexttile(t_hist, 6);
+if exist('BW_boldA','var') && iscell(BW_boldA) && size(BW_boldA,2) >= 3 && ~isempty(BW_boldA{1,3})
+    imshow(BW_boldA{1,3}, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing BW\_boldA{1,3})','Parent',ax);
+end
+title(ax,'Bold A (dilate disk)');
+
+ax = nexttile(t_hist, 7);
+if exist('BW_boldB','var') && iscell(BW_boldB) && size(BW_boldB,2) >= 3 && ~isempty(BW_boldB{1,3})
+    imshow(BW_boldB{1,3}, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing BW\_boldB{1,3})','Parent',ax);
+end
+title(ax,'Bold B (areaopen+dilate)');
+
+ax = nexttile(t_hist, 8);
+if exist('BW_boldC','var') && iscell(BW_boldC) && size(BW_boldC,2) >= 3 && ~isempty(BW_boldC{1,3})
+    imshow(BW_boldC{1,3}, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing BW\_boldC{1,3})','Parent',ax);
+end
+title(ax,'Bold C (grow/shrink)');
+
+
+% --- Row 3 (tiles 9..12): Bold D / Bold B thick / Base+perimC overlay / Inverted+outline
+ax = nexttile(t_hist, 9);
+if exist('BW_boldD','var') && iscell(BW_boldD) && size(BW_boldD,2) >= 3 && ~isempty(BW_boldD{1,3})
+    imshow(BW_boldD{1,3}, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing BW\_boldD{1,3})','Parent',ax);
+end
+title(ax,'Bold D (skeleton-based)');
+
+ax = nexttile(t_hist, 10);
+if exist('overlay_on_B_thick','var') && ~isempty(overlay_on_B_thick)
+    imshow(overlay_on_B_thick, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing overlay\_on\_B\_thick)','Parent',ax);
+end
+title(ax,'Bold B + thick outline');
+
+ax = nexttile(t_hist, 11);
+if exist('overlay_from_C','var') && ~isempty(overlay_from_C)
+    imshow(overlay_from_C, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing overlay\_from\_C)','Parent',ax);
+end
+title(ax,'Base + perimC overlay');
+
+ax = nexttile(t_hist, 12);
+if exist('overlay_from_C_inv_outlined_thick','var') 
+    imshow(overlay_from_C_inv_outlined_thick, 'Parent', ax);
+else
+    axis(ax,'off'); text(0.5,0.5,'(missing inverted/outlined overlays)','Parent',ax);
+end
+title(ax,'Inverted + outline (perimC)');
+
+
+% --- Row 4 (tiles 13..16): currently left empty for spacing (or fill later)
+for idx = 13:16
+    ax = nexttile(t_hist, idx);
     axis(ax, 'off');
 end
 
-% Step 6 Tab
+%% Step 6 Tab
 tab6 = uitab(tg, 'Title', 'Step 6 - Segmentation');
 t6 = tiledlayout(tab6, 3, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 
