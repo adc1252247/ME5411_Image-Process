@@ -177,7 +177,7 @@ end
 %% Run this to test part1 images in grayscale
 %% 
 % Unlabeled test folder (≤10 images)
-part1pic = imageDatastore("seg_gray", IncludeSubfolders=true); %Your folder should be grayscale image from part1
+part1pic = imageDatastore("seg_gray", IncludeSubfolders=true);
 part1aug = augmentedImageDatastore([128 128 1], part1pic, ...
     "OutputSizeMode","resize");
 
@@ -211,7 +211,7 @@ function Iu8 = toGray255(fname)
     % 3) If essentially binary, soften edges to create gray levels
     %    (can’t recover detail, but anti-aliasing helps)
     if islogical(I) || numel(unique(I)) <= 3
-        Id = imgaussfilt(Id, 0.8);   % tweak sigma if you want softer/harder edges
+        Id = imgaussfilt(Id, 0.8);
     end
 
     % 4) Stretch and convert to uint8 [0..255]
@@ -220,7 +220,7 @@ function Iu8 = toGray255(fname)
 end
 
 %% Use this to convert part1 image to grayscale (0-255) instead of using binary images
-inFolder  = "segmented_characters"; %Change to your part1 folder name
+inFolder  = "segmented_characters";
 outFolder = "seg_gray"; 
 if ~exist(outFolder,"dir") 
     mkdir(outFolder); 
