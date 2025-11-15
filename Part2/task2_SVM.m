@@ -214,7 +214,7 @@ function VisualizeResult(imdsValidation, predIdxVal, YValIdx, classNames)
                 color = "red";      % Red for incorrect prediction
             end
             
-            title(sprintf("Predict:%s , Ground truth:%s", string(predLabel), string(trueLabel)), "color", color, "FontSize", 8);
+            title(sprintf("Predict:%s , GT:%s", string(predLabel), string(trueLabel)), "color", color, "FontSize", 8);
         end
     end
     
@@ -234,7 +234,7 @@ function VisualizeResult(imdsValidation, predIdxVal, YValIdx, classNames)
             predLabel = classNames(predIdxVal(j));
             trueLabel = classNames(YValIdx(j));
             
-            title(sprintf("Predict:%s , Ground truth:%s", string(predLabel), string(trueLabel)), "color", "red", "FontSize", 8);
+            title(sprintf("Predict:%s , GT:%s", string(predLabel), string(trueLabel)), "color", "red", "FontSize", 8);
         end
     end
 end
