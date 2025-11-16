@@ -2,7 +2,9 @@
 
 This project is completed in Matlab to perform the required tasks. 
 Mainly separated into 
+
 Part1: Task 1~6 on pre-processing the original image **character2.bmp**
+
 Part2: Task7 on training 2 classification systems to classify the segmented images from Part1, using training data from **dataset_2025**
 
 Step 1.
