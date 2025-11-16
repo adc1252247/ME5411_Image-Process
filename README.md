@@ -22,3 +22,5 @@ Run SVM (To be updated)
 
 Step4 (Optional)
 Use "simpleCNN" and "AdvanceCNN" to train models and also perform evaluation within the scripts.
+
+Classification Results for the segmented characters can be found in "Part2/Results"
