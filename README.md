@@ -18,7 +18,7 @@ Run "runCNN" script to use Pre-trained models in "Save_models" to visualize the 
 
 Step3b (SVM).
 
-Run SVM (To be updated)
+Run "runSVM" script to use Pre-trained models to visualize the prediction result of the model on the dataset and part1 images
 
 Step4 (Optional)
 Use "simpleCNN" and "AdvanceCNN" to train models and also perform evaluation within the scripts.

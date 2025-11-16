@@ -11,45 +11,29 @@ imds = imageDatastore(dataFolder, ...
     IncludeSubfolders=true, ...
     LabelSource="foldernames");
 
-classNames = categories(imds.Labels);
 labelCount = countEachLabel(imds);
-
-%% Check image size, to confirm size 128*128
-img = readimage(imds,1);
-size(img);
 
 %% Split data to 75% (762) training and 25% validation
 numTrainFiles = 762;
 [imdsTrain,imdsValidation] = splitEachLabel(imds,numTrainFiles,"randomize");
 
-%% Extract features for training and validation
-targetSize = [64 64];   % feature resolution
-[XTrain,YTrainIdx] = extractFeature(imdsTrain, targetSize);
+%% Load trained SVM model
+output_folder = "Save_models";
+outputFile = fullfile(output_folder,"SVM_Model.mat");
+load(outputFile,"SVM_Model");
+
+W = SVM_Model.W;
+b = SVM_Model.b;
+classNames = SVM_Model.classNames;
+targetSize = SVM_Model.targetSize;
+featDim = SVM_Model.featDim;
+C = SVM_Model.C;
+numEpochs = SVM_Model.numEpochs;
+learningRate = SVM_Model.learningRate;
+
+%% Extract features for validation set
 [XVal,YValIdx] = extractFeature(imdsValidation, targetSize);
-
-numTrain = size(XTrain,1);
 numVal = size(XVal,1);
-numClasses = numel(classNames);
-featDim = size(XTrain,2);
-
-%% Train soft-margin SVM
-C = 2.0;    % soft-margin penalty
-numEpochs = 80;
-learningRate = 1e-4;
-
-W = zeros(featDim, numClasses);
-b = zeros(1, numClasses);
-
-for k = 1:numClasses
-    fprintf('Training SVM for class %s \n', string(classNames(k)));
-    
-    yBinary = -ones(numTrain,1);
-    yBinary(YTrainIdx == k) = 1;    % +1 for class k, -1 for others
-    
-    [wk, bk] = train_SVM(XTrain, yBinary, C, numEpochs, learningRate);
-    W(:,k) = wk;
-    b(k) = bk;
-end
 
 %% Evaluate on validation set
 scoresVal = XVal * W + repmat(b,numVal,1);
@@ -71,45 +55,12 @@ YPred = classNames(idxPart1);
 
 figure("Name","Part1 SVM predictions","NumberTitle","off");
 tiledlayout(5, 5, "TileSpacing","compact", "Padding","compact");
-for j = 1:N
-    I = readimage(part1pic,j);     % show original (not resized) for readability
-    nexttile; imshow(I,[]);
+for j = 1:min(N,25)
+    I = readimage(part1pic,j);
+    nexttile; imshow(I,[]); 
     if ismatrix(I), colormap(gca, gray); end
     title(sprintf("Predict:%s (%.2f)", string(YPred(j)),conf(j)),"FontSize",9);
 end
-
-%% Use this to convert part1 images to grayscale (0-255) instead of using binary images
-% (Run once before training/testing if you only have binary segmented images)
-inFolder  = "segmented_characters";
-outFolder = "seg_gray"; 
-if ~exist(outFolder,"dir")
-    mkdir(outFolder);
-end
-
-imdsPart1 = imageDatastore(inFolder,IncludeSubfolders=true);
-for i = 1:numel(imdsPart1.Files)
-    Iu8 = toGray255(imdsPart1.Files{i});
-    [~, name, ext] = fileparts(imdsPart1.Files{i});
-    imwrite(Iu8, fullfile(outFolder,name + "_gray" + ext));
-end
-
-%% Save trained SVM model into folder
-output_folder = 'Save_models';
-if ~exist(output_folder,'dir')
-    mkdir(output_folder);
-end
-SVM_Model.W = W;
-SVM_Model.b = b;
-SVM_Model.classNames = classNames;
-SVM_Model.targetSize = targetSize;
-SVM_Model.featDim = featDim;
-SVM_Model.C = C;
-SVM_Model.numEpochs = numEpochs;
-SVM_Model.learningRate = learningRate;
-
-outputFile = fullfile(output_folder,"SVM_Model.mat");
-save(outputFile,"SVM_Model");
-
 
 %% Feature extraction for the dataset
 function [X, YIdx] = extractFeature(imds, targetSize, useLabels)
@@ -138,7 +89,6 @@ function [X, YIdx] = extractFeature(imds, targetSize, useLabels)
     end
 end
 
-
 %% Feature extraction for single image
 function feat = extractSingleFeature(I, targetSize)
     if size(I,3) == 3
@@ -153,38 +103,6 @@ function feat = extractSingleFeature(I, targetSize)
     end
     feat = I(:)';   % row vector
 end
-
-
-
-%% train linear soft-margin SVM
-function [w, b] = train_SVM(X, y, C, numEpochs, eta0)
-    [N, D] = size(X);
-    w = zeros(D,1);
-    b = 0;
-    
-    for epoch = 1:numEpochs
-        eta = eta0 / (1 + 0.1*(epoch-1));   % learning rate
-        
-        idx = randperm(N);
-        Xshuf = X(idx,:);
-        yshuf = y(idx);
-        
-        for i = 1:N
-            xi = Xshuf(i,:)';
-            yi = yshuf(i);
-            
-            margin = yi * (w' * xi + b);
-    
-            if margin < 1
-                w = w - eta * (w - C * yi * xi);
-                b = b + eta * C * yi;
-            else
-                w = w - eta * w;
-            end
-        end
-    end
-end
-
 
 %% Visualize validation predictions
 function VisualizeResult(imdsValidation, predIdxVal, YValIdx, classNames)
@@ -238,23 +156,4 @@ function VisualizeResult(imdsValidation, predIdxVal, YValIdx, classNames)
             title(sprintf("Predict:%s , GT:%s", string(predLabel), string(trueLabel)), "color", "red", "FontSize", 8);
         end
     end
-end
-
-
-%% Turn image into grayscale type
-function Iu8 = toGray255(fname)
-    I = imread(fname);
-    
-    if size(I,3) == 3
-        I = 0.2989*I(:,:,1) + 0.5870*I(:,:,2) + 0.1140*I(:,:,3);
-    end
-    
-    Id = im2double(I);
-    
-    if islogical(I) || numel(unique(I)) <= 3
-        Id = imgaussfilt(Id, 0.8);
-    end
-    
-    Id = mat2gray(Id);               % ensure full 0..1 span
-    Iu8 = im2uint8(Id);              % -> 0..255 uint8
 end
